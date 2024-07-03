@@ -91,11 +91,149 @@
     
     <div class="e-content article-entry" itemprop="articleBody">
       
-        
+        <hr>
+<h2 id="创建日期-星期三-四月-24日-2024-9-16-33-晚上修改日期-星期三-四月-24日-2024-9-17-12-晚上"><a href="#创建日期-星期三-四月-24日-2024-9-16-33-晚上修改日期-星期三-四月-24日-2024-9-17-12-晚上" class="headerlink" title="创建日期: 星期三, 四月 24日 2024, 9:16:33 晚上修改日期: 星期三, 四月 24日 2024, 9:17:12 晚上"></a>创建日期: 星期三, 四月 24日 2024, 9:16:33 晚上<br>修改日期: 星期三, 四月 24日 2024, 9:17:12 晚上</h2><p> <a target="_blank" rel="noopener" href="https://dmesg.app/cloudflare">Cloudflare</a>  <a target="_blank" rel="noopener" href="https://dmesg.app/author/benny">Benny 小土豆</a>  1 年前 (2023-04-01 11:37)  8657 次浏览  3903 字  <a target="_blank" rel="noopener" href="https://dmesg.app/cf-zero-trust.html#comments">8 个评论</a></p>
+<p><strong>文章目录 [显示]</strong></p>
+<p>这篇文章在 2023 年 04 月 21 日 20:51:15 更新了哦~</p>
+<p>创建大内网是一件非常重要的事情。一旦有了安全的内网环境之后，我的服务器之间就可以使用私有 IP 进行通信，不用再考虑这个协议是否适合暴露在公网上、是否会被 MITM 等问题了。管他什么协议的，telnet 我都照样跑🤪！</p>
+<p>通常来说，我是<a target="_blank" rel="noopener" href="https://nova.moe/deploy-wireguard-on-ubuntu-bionic/">使用 WireGuard 来创建内网</a>的。选择一个机器作为 “服务器”，其他的节点作为客户端加进来就好了。<del>这也是业界最为成熟的方案了</del></p>
+<p>但是这样做仍有一些限制和缺陷，比如说：</p>
+<ul>
+<li>如何暴露整个家庭内网，如<code>192.168.7.0/24</code> 给出门在外的我，家里的每一个设备都要通过 WireGuard 加进来吗，或者写奇奇怪怪的 iptables 规则？</li>
+<li>所有的数据要通过 “服务器” 中转，两个美国的服务器明明直接就能沟通，50ms 解决，如果 WG 服务器在亚洲，那么就基本上 300ms 左右了</li>
+<li>穷到买不起服务器，没有公网 IP</li>
+</ul>
+<p>在这种情况下，最好的办法就是用 Cloudflare Zero Trust 中的 tunnel 啦！</p>
+<p>之前简单的提过我已经把<a target="_blank" rel="noopener" href="https://dmesg.app/argo-real-ip.html">所有的 web 服务都通过 argo tunnel 暴露了</a>，拓扑图大概是这样，从 Cloudflare 那边偷过来的：</p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101321423.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101321423.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<p>在我的服务器上安装<code>cloudflared</code>，然后添加 Public Hostname，所有的访问直接从 Cloudflare 的网络来。安全且环保！</p>
+<p>那么 Cloudflare tunnel 还有那些有趣的用法呢？先从暴露整个家庭内网来说吧！同样的道理，我们需要在家里运行一个 cloudflared connector，然后其他终端设备通过 WARP 连接到 Cloudflare，然后把整个网络暴露给终端设备，拓扑图如下：</p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101323051.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101323051.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<hr>
+<h1 id="暴露家庭内网"><a href="#暴露家庭内网" class="headerlink" title="暴露家庭内网"></a>暴露家庭内网</h1><h2 id="获取-team-domain"><a href="#获取-team-domain" class="headerlink" title="获取 team domain"></a>获取 team domain</h2><p>打开 Cloudflare Zero Trust，设置里就可以看到你的 team name，我这里就是<code>bennythink</code>啦</p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/202304010132311.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/202304010132311.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<h2 id="配置网络协议"><a href="#配置网络协议" class="headerlink" title="配置网络协议"></a>配置网络协议</h2><p>Settings-network，找到 proxy，把 TCP、UDP、ICMP 和 WARP to WARP 都打开（这个后续要用）</p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101323257.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101323257.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<h2 id="创建-WARP-设备注册权限"><a href="#创建-WARP-设备注册权限" class="headerlink" title="创建 WARP 设备注册权限"></a>创建 WARP 设备注册权限</h2><p>首先要定义如何注册设备，简单的来说通过邮箱就好了。比如说一个公司的人，用公司后缀的邮箱连接到同一个内网。在 Zero Trust 的面板中，Settings - WARP client - Dvice enrollment permission</p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101323341.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101323341.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101323478.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101323478.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<h2 id="创建-WARP-Profile"><a href="#创建-WARP-Profile" class="headerlink" title="创建 WARP Profile"></a>创建 WARP Profile</h2><p>所谓 Profile，就是定义什么用户使用什么样的 WARP 的规则，规则包括用户能否断开，自动重连等，其中最重要的是路由规则。</p>
+<p>如图，在此我配置的<code>home@dmesg.app</code> 这个用户的规则</p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101323579.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101323579.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<p>Split tunnel 用来配置如何分发流量，分为两种模式，<strong>include 和 exclude</strong>，有点像黑名单白名单的概念。</p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101323644.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101323644.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<ul>
+<li>Include，就像 WireGuard <code>allowIP</code>配置为<code>192.168.6.0/24</code>一样，只有这个网段的流量会走 WireGuard，其他流量会直接出去，不走 cloudflare</li>
+<li>Exclude，就是所有流量都要走 cloudflare，因此<code>192.168.7.0/24</code>走了 cloudflare 所以可以访问，列表中的直接连接</li>
+</ul>
+<p>说人话的话，比如你在外面，要访问家里<code>192.168.7.0/24</code>，并且<strong>所有其他流量要走 cloudflare</strong>，那么你要用 exclude 模式；</p>
+<p>你在外面，要访问家里的<code>192.168.7.0/24</code>，<strong>其他流量直接出</strong> <del>以方便真人快打</del>，那么就要用 include 模式。</p>
+<p>这里我就选择 include 模式，因此上图切换到 include，然后添加 IP 段，CIDR 表示法</p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101323785.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101323785.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<p>同时在 tunnel 的 Private Network 也要创建一样的 CIDR</p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101323865.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101323865.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<p>看 cloudflared 日志可以看到已经自动更新了配置</p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101323951.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101323951.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<h2 id="配置客户端连接"><a href="#配置客户端连接" class="headerlink" title="配置客户端连接"></a>配置客户端连接</h2><p>客户端需要下载 WARP，然后  Login to Cloudflare Zero Trust，输入 team name</p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101323984.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101323984.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<p>进行邮件验证</p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101324032.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101324032.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<p>然后你的 warp 就会接收到新的配置，连接起来，就会发现<code>192.168.7.0/24</code>已经通啦</p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101324165.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101324165.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<p>并且路由器的管理界面是打得开的</p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101325018.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101325018.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<hr>
+<h1 id="创建大内网"><a href="#创建大内网" class="headerlink" title="创建大内网"></a>创建大内网</h1><p>拓扑图如下，所有同一个 organization（team）的 WARP 都有一个独立的内网，可以安全进行数据交换。还记得上面开的 TCP、UDP、WARP to WRAP 吗？这里用到的就是 WARP to WARP</p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101325762.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101325762.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<h2 id="创建-profile"><a href="#创建-profile" class="headerlink" title="创建 profile"></a>创建 profile</h2><p>同样创建一个新的 profile</p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101330798.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101330798.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<p>Split tunnel 的原理相信大家已经懂了，简单起见，同样选择 include，只不过 IP 段写<code>100.64.0.0/10</code>，这个是 Cloudflare 默认的 Virtual Network，使用了 WARP 的设备会被分配到这个 IP 段里。这里一共有 400 多万个可用的 IP，沃尔玛员工人手 2 个 WARP，或者克罗地亚人一人一个都足够🤣</p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101331898.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101331898.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<h2 id="注册设备"><a href="#注册设备" class="headerlink" title="注册设备"></a>注册设备</h2><p>安装 warp-cli，然后</p>
+<ol>
+<li>warp-cli teams-enroll bennythink</li>
+</ol>
+<p>在你的浏览器上打开链接，输入邮箱<code>wg@dmesg.app</code>验证，但是并没有任何信息告诉你怎么打开终端里的 warp-cli，那怎么办呢？别怕，打开 F12，找到 Open Cloudflare WARP 那个按钮的元素，找到<code>onclick</code>事件，复制从<code>com.cloudflare.warp</code>开始的信息到结尾的单引号</p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101333518.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101333518.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<p>然后在终端中：</p>
+<ol>
+<li>warp-cli teams-enroll-token com.cloudflare.warp:&#x2F;&#x2F;bennythink.cloudflareaccess.com&#x2F;auth?token&#x3D;</li>
+</ol>
+<p>警告：<br>如果你使用的是 zsh，记得给那段 token 上用引号包起来 “your-token-with?weird&#x2F;&#x3D;+stuff” 或者切换到 bash</p>
+<h2 id="连接设备"><a href="#连接设备" class="headerlink" title="连接设备"></a>连接设备</h2><ol>
+<li><p>λ maria-pl ~ → warp-cli status</p>
+</li>
+<li><p>Status update: Disconnected. Reason: Manual Disconnection</p>
+</li>
+<li><p>Success</p>
+</li>
+<li><p>λ maria-pl ~ → warp-cli connect</p>
+</li>
+<li><p>Success</p>
+</li>
+</ol>
+<p>在 Zero Trust - My team - Devices 中就可以看到你的这个设备的 IP 地址了！</p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101352637.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101352637.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<p>同理，连接另外一个设备，同样的邮箱就可以。</p>
+<h2 id="测试内网互联"><a href="#测试内网互联" class="headerlink" title="测试内网互联"></a>测试内网互联</h2><p>直接 ssh 过去试试看</p>
+<ol>
+<li><p>λ maria-pl ~ → nc -v 100.96.0.14 22</p>
+</li>
+<li><p>Connection to 100.96.0.14 22 port [tcp&#x2F;ssh] succeeded!</p>
+</li>
+<li><p>SSH-2.0-OpenSSH_8.9p1 Ubuntu-3</p>
+</li>
+<li><p>^C</p>
+</li>
+<li><p>λ maria-pl ~ → ssh 100.96.0.14</p>
+</li>
+<li><p>The authenticity of host ‘100.96.0.14 (100.96.0.14)’ can’t be established.</p>
+</li>
+<li><p>ED25519 key fingerprint is SHA256:Gffeu3+72Z9pwZDawOHGSN7M2JxrbBub1hZoueKGJ1o.</p>
+</li>
+<li><p>This key is not known by any other names</p>
+</li>
+<li><p>Are you sure you want to continue connecting (yes&#x2F;no&#x2F;[fingerprint])?</p>
+</li>
+</ol>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101352719.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101352719.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<p>iperf3 测试</p>
+<p>速度也还不错，本来带宽也是 100Mbps</p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101352925.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101352925.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<h2 id="延迟测试"><a href="#延迟测试" class="headerlink" title="延迟测试"></a>延迟测试</h2><p>延迟略有增大，可能是 peer 连接到了不同的数据中心导致的。但是肯定不会出现美国 - 日本 - 美国这种绕圈圈的模式了。</p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/202304010135315.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/202304010135315.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<h2 id="如何使用自定义的网段"><a href="#如何使用自定义的网段" class="headerlink" title="如何使用自定义的网段"></a>如何使用自定义的网段</h2><p>如果不喜欢上面的<code>100.96.0.0/10</code>网段，怎么切换到自己的网段呢，比如<code>192.168.6.0/24</code>？</p>
+<p>根据文档来说，似乎是可以通过创建自己的 Virtual network（还不能在网页上创建），然后 WARP 连接的时候选择这个 network，然后 IP 就应该是你定义的而不是<code>100.96</code>之类的了</p>
+<ol>
+<li><p>cloudflared tunnel vnet add private</p>
+</li>
+<li><p>cloudflared tunnel route ip add –vnet private 192.168.89.0&#x2F;24 home</p>
+</li>
+<li><p>warp-cli get-virtual-networks</p>
+</li>
+<li><p>warp-cli set-virtual-network UUID</p>
+</li>
+<li><p>warp-cli connect</p>
+</li>
+</ol>
+<p>但是我测试的时候，无论是 CLI 还是 macOS WARP，即使选择了新建的网络，网页上看到的 IP 也始终是<code>100.96</code>，不知道为何，可能是他们的 bug</p>
+<p><a target="_blank" rel="noopener" href="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101354065.png"><img src="https://7bc5d24.webp.ee/wp-content/uploads/2023/03/2023040101354065.png" alt="使用Cloudflare Zero Trust创建大内网" title="使用Cloudflare Zero Trust创建大内网"></a></p>
+<h2 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h2><p>Zero Trust 还有很多好玩的玩法，比如可以给不同用户配置不同的网络访问规则，私有 DNS，可控网络（就是在家里连到 VPN，在公司直接走内网，不是根据 SSID 判断），以及大家都爱的中转梯子等等玩法。有空可以再探索探索。</p>
+<p>Cloudflare 的 WARP 直接用起来也不错，比如在公司、外面的公共 Wi-Fi，我都是直接打开的，体验非常好，在不需要换 IP 的情况下，可比买的那个 Surfshark VPN 好多了🥸</p>
+<p>再次感叹，Cloudflare 真是一家伟大的公司。<strong>Cloudflare 的使命是帮助建立一个更好的互联网</strong>👍</p>
+<p><a target="_blank" rel="noopener" href="https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/private-net/create-private-networks/">https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/private-net/create-private-networks/</a></p>
+<p><a target="_blank" rel="noopener" href="https://help.teams.cloudflare.com/">https://help.teams.cloudflare.com/</a></p>
+<p><a target="_blank" rel="noopener" href="https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/">https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/</a></p>
+<p><a target="_blank" rel="noopener" href="https://developers.cloudflare.com/cloudflare-one/tutorials/warp-to-tunnel/">https://developers.cloudflare.com/cloudflare-one/tutorials/warp-to-tunnel/</a></p>
+<p><a target="_blank" rel="noopener" href="https://dash.cloudflare.com/argotunnel">https://dash.cloudflare.com/argotunnel</a></p>
+<hr>
+<p>文章版权归原作者所有丨本站默认采用 <a target="_blank" rel="noopener" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">CC-BY-NC-SA 4.0</a> 协议进行授权 |<br>转载必须包含本声明，并以超链接形式注明原作者和本文原始地址：<br><a target="_blank" rel="noopener" href="https://dmesg.app/cf-zero-trust.html">https://dmesg.app/cf-zero-trust.html</a></p>
+<p>喜欢 (8)</p>
+
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2024/07/03/20240703/" data-id="cly5cyck00000ukbg2qgfg91e" data-title="20240703" class="article-share-link"><span class="fa fa-share">Share</span></a>
+      <a data-url="http://example.com/2024/07/03/20240703/" data-id="cly5d88m90001icbg6pq0fifd" data-title="20240703" class="article-share-link"><span class="fa fa-share">Share</span></a>
       
       
       
@@ -146,7 +284,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2024/07/03/hello-world/" data-id="cly5cyck50001ukbgenl6g9d4" data-title="Hello World" class="article-share-link"><span class="fa fa-share">Share</span></a>
+      <a data-url="http://example.com/2024/07/03/hello-world/" data-id="cly5d88m60000icbg4ku30tvu" data-title="Hello World" class="article-share-link"><span class="fa fa-share">Share</span></a>
       
       
       
